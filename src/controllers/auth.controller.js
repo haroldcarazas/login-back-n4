@@ -58,7 +58,6 @@ export const me = async (req, res) => {
     )
     res.json(resultado[0])
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) return res.status(400).json({ message: 'Token expirado' })
     res.status(500).json({ message: error.message })
   }
 }
