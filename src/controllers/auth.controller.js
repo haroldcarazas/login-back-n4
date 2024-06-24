@@ -1,7 +1,7 @@
-import { SECRET_KEY } from '../config/config.js'
-import { pool } from '../config/db.js'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+import { SECRET_KEY } from '../config/config.js'
+import usuarioModel from '../models/usuario.model.js'
 
 export const register = async (req, res) => {
   try {
@@ -9,14 +9,7 @@ export const register = async (req, res) => {
 
     if (!nombres || !apellidos || !username || !password) return res.status(400).json({ message: 'Faltan datos para el registro' })
 
-    // Encriptar la contraseña
-    const hash = await bcrypt.hash(password, 10)
-
-    const fecha = new Date()
-    const [resultado] = await pool.execute(
-      'INSERT INTO usuarios(nombres, apellidos, username, password, fecha_creacion) VALUES(?, ?, ?, ?, ?)',
-      [nombres, apellidos, username, hash, fecha.toISOString()]
-    )
+    const resultado = await usuarioModel.create(nombres, apellidos, username, password)
 
     if (resultado.affectedRows !== 1) return res.status(400).json({ message: 'Error al insertar el registro' })
 
@@ -31,7 +24,7 @@ export const login = async (req, res) => {
   try {
     const { username, password } = req.body
 
-    const [resultado] = await pool.execute('SELECT * FROM usuarios WHERE username=?', [username])
+    const resultado = await usuarioModel.where('username', username)
     if (resultado.length === 0) return res.status(400).json({ message: 'Usuario no encontrado' })
 
     const usuario = resultado[0]
@@ -52,10 +45,7 @@ export const me = async (req, res) => {
   try {
     const { authorization } = req.headers
     const { usuarioId } = jwt.verify(authorization, SECRET_KEY)
-    const [resultado] = await pool.execute(
-      'SELECT usuario_id, nombres, apellidos, telefono, username FROM usuarios WHERE usuario_id=?',
-      [usuarioId]
-    )
+    const resultado = await usuarioModel.findById(usuarioId)
     res.json(resultado[0])
   } catch (error) {
     res.status(500).json({ message: error.message })
